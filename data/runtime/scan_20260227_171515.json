@@ -1,0 +1,112 @@
+{
+  "Baseline": {
+    "OsName": "Microsoft Windows 10 Pro",
+    "OsEdition": "Professional",
+    "DisplayVersion": "22H2",
+    "Build": "19045.6466",
+    "Architecture": "x64",
+    "IsAdmin": true,
+    "LcuMonthId": "2025-Dec",
+    "LcuPackageName": "Package_for_RollupFix~31bf3856ad364e35~amd64~~19041.6466.1.0",
+    "LcuInstallTime": "/Date(1765909740000)/",
+    "MsrcLatestMonthId": "2025-Dec",
+    "ProductNameHint": "Windows 10 Version 22H2 for x64-based Systems"
+  },
+  "InstalledKbs": [
+    "KB5011048",
+    "KB5014032",
+    "KB5015684",
+    "KB5022502",
+    "KB5025315",
+    "KB5033052",
+    "KB5066130",
+    "KB5066790",
+    "KB5071959",
+    "KB5071982",
+    "KB5072653"
+  ],
+  "MonthsRequested": [
+    "2025-Dec"
+  ],
+  "MonthsWithEntries": [
+    "2025-Dec"
+  ],
+  "KbEntries": [
+    {
+      "KB": "KB5066791",
+      "Months": [
+        "2025-Dec"
+      ],
+      "Cves": [
+        "CVE-2025-64679",
+        "CVE-2025-64680"
+      ],
+      "Supersedes": [
+        "KB5065429"
+      ],
+      "UpdateType": "Superseding"
+    },
+    {
+      "KB": "KB5068781",
+      "Months": [
+        "2025-Dec"
+      ],
+      "Cves": [
+        "CVE-2025-64678"
+      ],
+      "Supersedes": [
+        "KB5066791"
+      ],
+      "UpdateType": "Superseding"
+    },
+    {
+      "KB": "KB5071546",
+      "Months": [
+        "2025-Dec"
+      ],
+      "Cves": [
+        "CVE-2025-54100",
+        "CVE-2025-55233",
+        "CVE-2025-59516",
+        "CVE-2025-59517",
+        "CVE-2025-62221",
+        "CVE-2025-62454",
+        "CVE-2025-62455",
+        "CVE-2025-62457",
+        "CVE-2025-62458",
+        "CVE-2025-62461",
+        "CVE-2025-62462",
+        "CVE-2025-62463",
+        "CVE-2025-62464",
+        "CVE-2025-62466",
+        "CVE-2025-62467",
+        "CVE-2025-62470",
+        "CVE-2025-62472",
+        "CVE-2025-62473",
+        "CVE-2025-62474",
+        "CVE-2025-62549",
+        "CVE-2025-62565",
+        "CVE-2025-62567",
+        "CVE-2025-62571",
+        "CVE-2025-62573",
+        "CVE-2025-64658",
+        "CVE-2025-64661",
+        "CVE-2025-64670",
+        "CVE-2025-64673"
+      ],
+      "Supersedes": [
+        "KB5068781"
+      ],
+      "UpdateType": "Superseding"
+    }
+  ],
+  "MissingKbs": [
+    "KB5066791",
+    "KB5068781",
+    "KB5071546"
+  ],
+  "MissingBreakdown": {
+    "Superseding": 3,
+    "Standalone": 0
+  }
+}
