@@ -6,7 +6,9 @@ title WinShield+ Collector
 REM ------------------------------------------------------------
 REM WinShield+ Collector Launcher
 REM ------------------------------------------------------------
-REM Runs the collector and writes runtime scan JSON to data\runtime.
+REM Runs the portable collector executable and writes scan JSON to:
+REM     data\runtime   - latest scan workspace
+REM     data\collected - persistent scan archive
 REM ------------------------------------------------------------
 
 cd /d "%~dp0"
@@ -15,7 +17,8 @@ set "APP_NAME=WinShield+ Collector"
 set "EXE_PATH=src\core\winshield_collector.exe"
 set "PY_PATH=src\core\winshield_collector.py"
 set "POWERSHELL_DIR=src\powershell"
-set "OUTPUT_DIR=data\runtime"
+set "RUNTIME_DIR=data\runtime"
+set "COLLECTED_DIR=data\collected"
 
 echo.
 echo ============================================================
@@ -96,7 +99,7 @@ if %errorlevel% neq 0 (
         echo.
         echo [X] Failed to install MsrcSecurityUpdates.
         echo.
-        echo You can install it manually with:
+        echo Install it manually with:
         echo powershell -NoProfile -Command "Install-Module MsrcSecurityUpdates -Scope CurrentUser"
         echo.
         pause
@@ -137,11 +140,15 @@ if not exist "%POWERSHELL_DIR%\winshield_adapter.ps1" (
 )
 
 REM ------------------------------------------------------------
-REM RUNTIME OUTPUT DIRECTORY
+REM DATA DIRECTORIES
 REM ------------------------------------------------------------
 
-if not exist "%OUTPUT_DIR%" (
-    mkdir "%OUTPUT_DIR%" >nul 2>&1
+if not exist "%RUNTIME_DIR%" (
+    mkdir "%RUNTIME_DIR%" >nul 2>&1
+)
+
+if not exist "%COLLECTED_DIR%" (
+    mkdir "%COLLECTED_DIR%" >nul 2>&1
 )
 
 REM ------------------------------------------------------------
@@ -164,7 +171,8 @@ if exist "%EXE_PATH%" (
 
     echo.
     echo [+] Scan completed successfully.
-    echo [+] Runtime JSON saved in: %OUTPUT_DIR%
+    echo [+] Runtime JSON saved in: %RUNTIME_DIR%
+    echo [+] Archived copy saved in: %COLLECTED_DIR%
     echo.
     pause
     exit /b 0
@@ -205,7 +213,8 @@ if exist "%PY_PATH%" (
 
     echo.
     echo [+] Scan completed successfully.
-    echo [+] Runtime JSON saved in: %OUTPUT_DIR%
+    echo [+] Runtime JSON saved in: %RUNTIME_DIR%
+    echo [+] Archived copy saved in: %COLLECTED_DIR%
     echo.
     pause
     exit /b 0

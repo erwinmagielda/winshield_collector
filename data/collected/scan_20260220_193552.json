@@ -1,0 +1,74 @@
+{
+  "Baseline": {
+    "OsName": "Microsoft Windows 10 Home",
+    "OsEdition": "Core",
+    "DisplayVersion": "22H2",
+    "Build": "19045.6937",
+    "Architecture": "x64",
+    "IsAdmin": true,
+    "LcuMonthId": "2026-Feb",
+    "LcuPackageName": "Package_for_RollupFix~31bf3856ad364e35~amd64~~19041.6937.1.15",
+    "LcuInstallTime": "/Date(1770916800000)/",
+    "MsrcLatestMonthId": "2026-Feb",
+    "ProductNameHint": "Windows 10 Version 22H2 for x64-based Systems"
+  },
+  "InstalledKbs": [
+    "KB5011048",
+    "KB5014032",
+    "KB5015684",
+    "KB5032907",
+    "KB5056577",
+    "KB5058526",
+    "KB5059504",
+    "KB5063261",
+    "KB5063706",
+    "KB5063979",
+    "KB5066130",
+    "KB5066790",
+    "KB5068780",
+    "KB5072653",
+    "KB5075912",
+    "KB5077456"
+  ],
+  "MonthsRequested": [
+    "2026-Feb"
+  ],
+  "KbEntries": [
+    {
+      "KB": "KB5075912",
+      "Months": [
+        "2026-Feb"
+      ],
+      "Cves": [
+        "CVE-2026-21519",
+        "CVE-2026-21248",
+        "CVE-2026-21247",
+        "CVE-2026-21246",
+        "CVE-2026-21242",
+        "CVE-2026-21235",
+        "CVE-2026-21234",
+        "CVE-2026-21236",
+        "CVE-2026-21533",
+        "CVE-2026-21513",
+        "CVE-2026-21510",
+        "CVE-2026-21525",
+        "CVE-2026-21508",
+        "CVE-2026-21255",
+        "CVE-2026-21253",
+        "CVE-2026-21249",
+        "CVE-2026-21244",
+        "CVE-2026-21240",
+        "CVE-2026-21239",
+        "CVE-2026-21238",
+        "CVE-2026-21237",
+        "CVE-2026-21231",
+        "CVE-2026-21222",
+        "CVE-2026-20846"
+      ],
+      "Supersedes": [
+        "KB5073724"
+      ]
+    }
+  ],
+  "MissingKbs": []
+}

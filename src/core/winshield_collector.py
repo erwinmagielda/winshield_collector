@@ -5,6 +5,10 @@ Portable Windows patch inventory collector for authorised hosts.
 
 This collector preserves the original WinShield+ runtime scan output contract
 so generated JSON files can be fed directly into the main WinShield+ pipeline.
+
+Runtime behaviour:
+    data/runtime   = latest scan workspace, cleared every run
+    data/collected = persistent scan archive, never cleared by collector
 """
 
 import argparse
@@ -47,7 +51,8 @@ def get_root_dir() -> Path:
         │       ├── winshield_inventory.ps1
         │       └── winshield_adapter.ps1
         └── data/
-            └── runtime/
+            ├── runtime/
+            └── collected/
 
     Source mode:
         src/core/winshield_collector.py
@@ -67,6 +72,7 @@ ROOT_DIR = get_root_dir()
 POWERSHELL_DIR = ROOT_DIR / "src" / "powershell"
 DATA_DIR = ROOT_DIR / "data"
 RUNTIME_DIR = DATA_DIR / "runtime"
+COLLECTED_DIR = DATA_DIR / "collected"
 
 
 # ------------------------------------------------------------
@@ -107,12 +113,18 @@ def ensure_required_files() -> None:
 # ------------------------------------------------------------
 
 def clear_runtime_directory() -> None:
-    """Clear existing runtime artefacts before starting a new scan."""
+    """
+    Clear existing runtime artefacts before starting a new scan.
+
+    data/runtime is treated as the latest scan workspace.
+    data/collected is a persistent archive and is never cleared here.
+    """
 
     if RUNTIME_DIR.exists():
         shutil.rmtree(RUNTIME_DIR)
 
     RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+    COLLECTED_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ------------------------------------------------------------
@@ -391,13 +403,21 @@ def collect_scan(max_months: int = 48) -> dict[str, Any]:
 # ------------------------------------------------------------
 
 def export_runtime_scan(scan_result: dict[str, Any]) -> Path:
-    """Write runtime scan output to the data/runtime directory."""
+    """
+    Write runtime scan output to data/runtime and copy it to data/collected.
+
+    data/runtime contains only the latest scan because it is cleared before
+    each run. data/collected keeps a persistent copy of every generated scan.
+    """
 
     timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     runtime_scan_path = RUNTIME_DIR / f"scan_{timestamp}.json"
+    collected_scan_path = COLLECTED_DIR / runtime_scan_path.name
 
     with runtime_scan_path.open("w", encoding="utf-8") as file:
         json.dump(scan_result, file, indent=2)
+
+    shutil.copy2(runtime_scan_path, collected_scan_path)
 
     return runtime_scan_path
 
@@ -447,6 +467,7 @@ def main() -> int:
 
         if not args.quiet:
             print(f"Runtime scan saved: {relative_path(runtime_scan_path)}")
+            print(f"Archived copy saved: {relative_path(COLLECTED_DIR / runtime_scan_path.name)}")
 
         return 0
 
