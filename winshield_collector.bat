@@ -6,6 +6,9 @@ title WinShield+ Collector
 REM ------------------------------------------------------------
 REM WinShield+ Collector Launcher
 REM ------------------------------------------------------------
+REM Runs the portable collector executable and writes JSON output
+REM into data\runtime using the original WinShield+ scan format.
+REM ------------------------------------------------------------
 
 cd /d "%~dp0"
 
@@ -13,7 +16,7 @@ set "APP_NAME=WinShield+ Collector"
 set "EXE_PATH=src\core\winshield_collector.exe"
 set "PY_PATH=src\core\winshield_collector.py"
 set "POWERSHELL_DIR=src\powershell"
-set "OUTPUT_DIR=output"
+set "OUTPUT_DIR=data\runtime"
 
 echo.
 echo ============================================================
@@ -135,7 +138,7 @@ if not exist "%POWERSHELL_DIR%\winshield_adapter.ps1" (
 )
 
 REM ------------------------------------------------------------
-REM OUTPUT DIRECTORY
+REM RUNTIME OUTPUT DIRECTORY
 REM ------------------------------------------------------------
 
 if not exist "%OUTPUT_DIR%" (
@@ -162,7 +165,7 @@ if exist "%EXE_PATH%" (
 
     echo.
     echo [+] Scan completed successfully.
-    echo [+] JSON output saved in: %OUTPUT_DIR%
+    echo [+] Runtime JSON saved in: %OUTPUT_DIR%
     echo.
     pause
     exit /b 0
@@ -203,7 +206,7 @@ if exist "%PY_PATH%" (
 
     echo.
     echo [+] Scan completed successfully.
-    echo [+] JSON output saved in: %OUTPUT_DIR%
+    echo [+] Runtime JSON saved in: %OUTPUT_DIR%
     echo.
     pause
     exit /b 0
