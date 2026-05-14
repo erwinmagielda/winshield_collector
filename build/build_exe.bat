@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-title Build WinShield+ Collector EXE
+title WinShield+ Collector Builder
 
 REM ------------------------------------------------------------
 REM WinShield+ Collector Builder

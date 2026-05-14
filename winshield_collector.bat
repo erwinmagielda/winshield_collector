@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-title WinShield+ Collector
+title WinShield+ Collector Launcher
 
 REM ------------------------------------------------------------
 REM WinShield+ Collector Launcher
