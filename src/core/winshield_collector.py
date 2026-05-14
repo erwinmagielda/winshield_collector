@@ -1,5 +1,5 @@
 """
-WinShield Collector.
+WinShield+ Collector.
 
 Portable Windows patch inventory collector for authorised hosts.
 
