@@ -1,18 +1,15 @@
 @echo off
 setlocal
 
-title WinShield Collector
+title WinShield+ Collector
 
 REM ------------------------------------------------------------
-REM WinShield Collector Launcher
-REM ------------------------------------------------------------
-REM Runs the portable collector executable and writes JSON output
-REM into the output folder.
+REM WinShield+ Collector Launcher
 REM ------------------------------------------------------------
 
 cd /d "%~dp0"
 
-set "APP_NAME=WinShield Collector"
+set "APP_NAME=WinShield+ Collector"
 set "EXE_PATH=src\core\winshield_collector.exe"
 set "PY_PATH=src\core\winshield_collector.py"
 set "POWERSHELL_DIR=src\powershell"
@@ -36,18 +33,18 @@ if /i not "%OS%"=="Windows_NT" (
 )
 
 REM ------------------------------------------------------------
-REM ADMIN CHECK
+REM ADMIN ELEVATION
 REM ------------------------------------------------------------
 
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [X] Administrator privileges are required.
+    echo [!] Administrator privileges are required.
+    echo [*] Requesting elevation...
     echo.
-    echo Right-click winshield_collector.bat and choose:
-    echo Run as administrator
-    echo.
-    pause
-    exit /b 1
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+
+    exit /b
 )
 
 REM ------------------------------------------------------------
@@ -60,6 +57,53 @@ if %errorlevel% neq 0 (
     echo.
     pause
     exit /b 1
+)
+
+REM ------------------------------------------------------------
+REM MSRC POWERSHELL MODULE CHECK
+REM ------------------------------------------------------------
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "if (Get-Module -ListAvailable -Name MsrcSecurityUpdates) { exit 0 } else { exit 1 }" >nul 2>&1
+
+if %errorlevel% neq 0 (
+    echo [!] Required PowerShell module is missing:
+    echo     MsrcSecurityUpdates
+    echo.
+    echo This module is required to query Microsoft Security Response Center data.
+    echo.
+    choice /C YN /M "Install MsrcSecurityUpdates for the current user now?"
+
+    if errorlevel 2 (
+        echo.
+        echo [X] Dependency installation declined.
+        echo.
+        echo Install it manually with:
+        echo powershell -NoProfile -Command "Install-Module MsrcSecurityUpdates -Scope CurrentUser"
+        echo.
+        pause
+        exit /b 1
+    )
+
+    echo.
+    echo [*] Installing MsrcSecurityUpdates...
+    echo.
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue; Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force; Install-Module MsrcSecurityUpdates -Scope CurrentUser -Force -AllowClobber"
+
+    if %errorlevel% neq 0 (
+        echo.
+        echo [X] Failed to install MsrcSecurityUpdates.
+        echo.
+        echo You can install it manually with:
+        echo powershell -NoProfile -Command "Install-Module MsrcSecurityUpdates -Scope CurrentUser"
+        echo.
+        pause
+        exit /b 1
+    )
+
+    echo.
+    echo [+] MsrcSecurityUpdates installed successfully.
+    echo.
 )
 
 REM ------------------------------------------------------------
@@ -99,7 +143,7 @@ if not exist "%OUTPUT_DIR%" (
 )
 
 REM ------------------------------------------------------------
-REM COLLECTOR EXECUTION
+REM COLLECTOR EXECUTION - EXE FIRST
 REM ------------------------------------------------------------
 
 if exist "%EXE_PATH%" (

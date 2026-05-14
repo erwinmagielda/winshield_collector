@@ -3,30 +3,17 @@ WinShield+ Collector.
 
 Portable Windows patch inventory collector for authorised hosts.
 
-The collector coordinates PowerShell scripts, collects host baseline and
-installed update data, correlates the host with MSRC CVRF KB data, resolves
-basic supersedence relationships, and exports a structured JSON scan file.
-
-The generated JSON is intended to be imported into the main WinShield+
-analysis pipeline for enrichment, validation, and prioritisation.
+This collector preserves the original WinShield+ scan JSON contract so the
+generated scan files can be fed directly into the main WinShield+ pipeline.
 """
 
 import argparse
 import json
-import socket
 import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
-
-# ------------------------------------------------------------
-# APPLICATION METADATA
-# ------------------------------------------------------------
-
-APP_NAME = "WinShield Collector"
-APP_VERSION = "1.0.0"
 
 
 # ------------------------------------------------------------
@@ -46,21 +33,33 @@ def get_root_dir() -> Path:
     """
     Return the project root directory.
 
+    Expected layout:
+
+        WINSHIELD_COLLECTOR/
+        ├── winshield_collector.bat
+        ├── src/
+        │   ├── core/
+        │   │   ├── winshield_collector.py
+        │   │   └── winshield_collector.exe
+        │   └── powershell/
+        │       ├── winshield_baseline.ps1
+        │       ├── winshield_inventory.ps1
+        │       └── winshield_adapter.ps1
+        └── output/
+
     Source mode:
-        WINSHIELD_COLLECTOR/src/core/winshield_collector.py
+        src/core/winshield_collector.py
 
     EXE mode:
-        WINSHIELD_COLLECTOR/src/core/winshield_collector.exe
+        src/core/winshield_collector.exe
 
-    In both cases, the root is two levels above this file.
+    In both cases, the project root is two levels above the file.
     """
 
     if getattr(sys, "frozen", False):
-        executable_path = Path(sys.executable).resolve()
-        return executable_path.parents[2]
+        return Path(sys.executable).resolve().parents[2]
 
-    script_path = Path(__file__).resolve()
-    return script_path.parents[2]
+    return Path(__file__).resolve().parents[2]
 
 
 ROOT_DIR = get_root_dir()
@@ -69,38 +68,11 @@ OUTPUT_DIR = ROOT_DIR / "output"
 
 
 # ------------------------------------------------------------
-# UTILITY HELPERS
+# BASIC HELPERS
 # ------------------------------------------------------------
 
-def timestamp_utc() -> str:
-    """Return a compact UTC timestamp for output filenames."""
-
-    return datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-
-
-def current_utc_iso() -> str:
-    """Return the current UTC timestamp in ISO 8601 format."""
-
-    return datetime.now(UTC).isoformat()
-
-
-def normalise_hostname() -> str:
-    """Return a safe hostname string for filenames."""
-
-    hostname = socket.gethostname().strip() or "UNKNOWN_HOST"
-    safe_chars = []
-
-    for char in hostname:
-        if char.isalnum() or char in ("-", "_"):
-            safe_chars.append(char)
-        else:
-            safe_chars.append("_")
-
-    return "".join(safe_chars)
-
-
 def relative_path(path: Path) -> str:
-    """Return a project-relative path for concise status messages."""
+    """Return a project-relative path for cleaner console output."""
 
     try:
         return str(path.relative_to(ROOT_DIR))
@@ -109,7 +81,7 @@ def relative_path(path: Path) -> str:
 
 
 def ensure_required_files() -> None:
-    """Validate that the required PowerShell scripts are present."""
+    """Validate that the required PowerShell collector scripts are present."""
 
     required_scripts = [
         BASELINE_SCRIPT,
@@ -160,12 +132,14 @@ def run_powershell_script(
 
     if result.returncode != 0:
         error_output = result.stderr.strip() or result.stdout.strip()
+
         if error_output:
             raise RuntimeError(f"{script_name} failed: {error_output}")
 
         raise RuntimeError(f"{script_name} failed with exit code {result.returncode}")
 
     stdout = result.stdout.strip()
+
     if not stdout:
         raise RuntimeError(f"{script_name} returned no output")
 
@@ -221,6 +195,7 @@ def build_month_ids_from_lcu(
             break
 
         month += 1
+
         if month == 13:
             month = 1
             year += 1
@@ -246,6 +221,7 @@ def merge_kb_entries(
 
     for entry in incoming:
         kb_id = entry.get("KB")
+
         if not kb_id:
             continue
 
@@ -272,13 +248,19 @@ def merge_kb_entries(
 def compute_supersedence(
     kb_entries: list[dict[str, Any]],
     installed_kbs: set[str],
-) -> tuple[set[str], dict[str, list[str]]]:
-    """Expand logical KB presence using supersedence relationships."""
+) -> set[str]:
+    """
+    Expand logical KB presence using supersedence relationships.
+
+    This is used only to determine MissingKbs while preserving the original
+    scan JSON output structure.
+    """
 
     supersedes_map: dict[str, set[str]] = {}
 
     for entry in kb_entries:
         kb_id = entry.get("KB")
+
         if not kb_id:
             continue
 
@@ -286,7 +268,6 @@ def compute_supersedence(
             supersedes_map.setdefault(kb_id, set()).add(superseded_kb)
 
     logical_present_kbs = set(installed_kbs)
-    superseded_by: dict[str, set[str]] = {}
 
     for root_kb in installed_kbs:
         stack = [root_kb]
@@ -297,26 +278,31 @@ def compute_supersedence(
 
             for superseded_kb in supersedes_map.get(current_kb, set()):
                 logical_present_kbs.add(superseded_kb)
-                superseded_by.setdefault(superseded_kb, set()).add(root_kb)
 
                 if superseded_kb not in seen:
                     seen.add(superseded_kb)
                     stack.append(superseded_kb)
 
-    return logical_present_kbs, {
-        kb_id: sorted(replacing_kbs)
-        for kb_id, replacing_kbs in superseded_by.items()
-    }
+    return logical_present_kbs
 
 
 # ------------------------------------------------------------
-# SCAN BUILDING
+# SCAN COLLECTION
 # ------------------------------------------------------------
 
 def collect_scan(max_months: int = 48) -> dict[str, Any]:
-    """Collect baseline, inventory, and MSRC KB data into one scan object."""
+    """
+    Collect baseline, inventory, and MSRC KB data.
 
-    scan_started_utc = current_utc_iso()
+    The returned object intentionally matches the original WinShield+ scan
+    schema used by the downstream pipeline:
+
+        Baseline
+        InstalledKbs
+        MonthsRequested
+        KbEntries
+        MissingKbs
+    """
 
     baseline = run_powershell_script(BASELINE_SCRIPT)
 
@@ -333,7 +319,6 @@ def collect_scan(max_months: int = 48) -> dict[str, Any]:
     )
 
     merged_entries: dict[str, dict[str, Any]] = {}
-    months_with_entries: list[str] = []
 
     for month_chunk in chunk_list(month_ids, 3):
         msrc_data = run_powershell_script(
@@ -347,9 +332,7 @@ def collect_scan(max_months: int = 48) -> dict[str, Any]:
         )
 
         entries = msrc_data.get("KbEntries") or []
-        if entries:
-            months_with_entries.extend(month_chunk)
-            merge_kb_entries(merged_entries, entries)
+        merge_kb_entries(merged_entries, entries)
 
     kb_entries = list(merged_entries.values())
 
@@ -357,47 +340,29 @@ def collect_scan(max_months: int = 48) -> dict[str, Any]:
         entry["Months"] = sorted(set(entry.get("Months") or []))
         entry["Cves"] = sorted(set(entry.get("Cves") or []))
         entry["Supersedes"] = sorted(set(entry.get("Supersedes") or []))
-        entry["UpdateType"] = "Superseding" if entry["Supersedes"] else "Standalone"
 
-    logical_present_kbs, superseded_by = compute_supersedence(
+    logical_present_kbs = compute_supersedence(
         kb_entries=kb_entries,
         installed_kbs=installed_kbs,
     )
 
-    expected_kbs = {entry["KB"] for entry in kb_entries if entry.get("KB")}
+    expected_kbs = {
+        entry["KB"]
+        for entry in kb_entries
+        if entry.get("KB")
+    }
+
     missing_kbs = sorted(expected_kbs - logical_present_kbs)
 
-    scan_finished_utc = current_utc_iso()
-
-    return {
-        "Tool": {
-            "Name": APP_NAME,
-            "Version": APP_VERSION,
-            "Purpose": "Portable Windows patch inventory collection",
-        },
-        "ScanMetadata": {
-            "Hostname": normalise_hostname(),
-            "ScanStartedUtc": scan_started_utc,
-            "ScanFinishedUtc": scan_finished_utc,
-            "Source": "winshield_collector",
-        },
+    scan_result = {
         "Baseline": baseline,
-        "Inventory": inventory,
         "InstalledKbs": sorted(installed_kbs),
         "MonthsRequested": month_ids,
-        "MonthsWithEntries": sorted(set(months_with_entries)),
         "KbEntries": sorted(kb_entries, key=lambda item: item["KB"]),
         "MissingKbs": missing_kbs,
-        "SupersededBy": superseded_by,
-        "Summary": {
-            "InstalledKbCount": len(installed_kbs),
-            "ExpectedKbCount": len(expected_kbs),
-            "MappedKbEntryCount": len(kb_entries),
-            "MissingKbCount": len(missing_kbs),
-            "MonthsRequestedCount": len(month_ids),
-            "MonthsWithEntriesCount": len(set(months_with_entries)),
-        },
     }
+
+    return scan_result
 
 
 # ------------------------------------------------------------
@@ -405,14 +370,12 @@ def collect_scan(max_months: int = 48) -> dict[str, Any]:
 # ------------------------------------------------------------
 
 def export_scan(scan_result: dict[str, Any]) -> Path:
-    """Write the collected scan result to the output directory."""
+    """Write the collected scan using the original WinShield+ filename format."""
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    hostname = scan_result["ScanMetadata"]["Hostname"]
-    scan_timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-
-    output_path = OUTPUT_DIR / f"winshield_scan_{hostname}_{scan_timestamp}.json"
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    output_path = OUTPUT_DIR / f"scan_{timestamp}.json"
 
     with output_path.open("w", encoding="utf-8") as file:
         json.dump(scan_result, file, indent=2)
@@ -428,7 +391,7 @@ def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
 
     parser = argparse.ArgumentParser(
-        description="Collect Windows patch inventory data and export JSON.",
+        description="Collect Windows patch inventory data and export WinShield+ scan JSON.",
     )
 
     parser.add_argument(
@@ -452,12 +415,13 @@ def parse_args() -> argparse.Namespace:
 # ------------------------------------------------------------
 
 def main() -> int:
-    """Run the WinShield Collector workflow."""
+    """Run the WinShield+ Collector workflow."""
 
     args = parse_args()
 
     try:
         ensure_required_files()
+
         scan_result = collect_scan(max_months=args.max_months)
         output_path = export_scan(scan_result)
 
