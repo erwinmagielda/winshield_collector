@@ -6,8 +6,7 @@ title WinShield+ Collector
 REM ------------------------------------------------------------
 REM WinShield+ Collector Launcher
 REM ------------------------------------------------------------
-REM Runs the portable collector executable and writes JSON output
-REM into data\runtime using the original WinShield+ scan format.
+REM Runs the collector and writes runtime scan JSON to data\runtime.
 REM ------------------------------------------------------------
 
 cd /d "%~dp0"
